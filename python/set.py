@@ -17,6 +17,9 @@ class Set:
                 self.sentences_.append ( Sentence ( sentence_stream [:-1] ) )
                 sentence_stream = ""
 
+        if sentence_stream != "":
+            self.sentences_.append( Sentence( sentence_stream [:-1] ) )
+
 
     def write (self, file: str):
 
@@ -31,14 +34,5 @@ class Set:
 
     def count_sentences ( self ):
         return len ( self.sentences_ )
-
-
-
-
-
-
-
-
-
 
 
