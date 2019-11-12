@@ -15,8 +15,8 @@ def assess (gt : set, predicted : set, func):
     fulfilled = 0
     total_tokens = gt.count_tokens()
 
-    for lsen,psen in zip(gt.sentences_, predicted.sentences_):
-        for ltok,ptok in zip ( lsen.tokens_, psen.tokens_ ):
+    for lsen,psen in zip(gt.sentences_ , predicted.sentences_):
+        for ltok,ptok in zip ( lsen.tokens_[1:], psen.tokens_[1:] ):
             fulfilled += func (ltok,ptok)
 
-    return {fulfilled*100/total_tokens , fulfilled, total_tokens}
+    return [ fulfilled*100/total_tokens , fulfilled, total_tokens ]
