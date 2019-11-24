@@ -9,6 +9,7 @@
 #include <vector>
 #include <sstream>
 #include <cstring>
+#include <cstdio>
 #include "units.h"
 
 namespace set {
@@ -19,42 +20,77 @@ namespace set {
     public:
 
         explicit set( std::string const & file_path ) {
-
-            std::ifstream coll06 ( file_path ) ;
-            if ( !coll06.is_open() ) {
+            FILE * fp = fopen(file_path.c_str(),"r");
+//            std::ifstream coll06 ( file_path ) ;
+//            if ( !coll06.is_open() ) {
+//                throw std::runtime_error ( "[Failure]: file \"" + file_path + "\" not found." );
+//            }
+            if ( fp == nullptr ) {
                 throw std::runtime_error ( "[Failure]: file \"" + file_path + "\" not found." );
             }
 
             units::sentence stc ;
-            for (  std::string line ; getline( coll06, line ) ; ) {
-                /* then, new sentence */
-                if ( line != "" ) {
+            int id, head ;
+            char  form[100] ;
+            char  lemma[100] ;
+            char  pos[100] ;
+            char  xpos[100] ;
+            char  morph[100] ;
+            char  rel[100] ;
+            char  useless[100] ;
 
-                    int const id = std::atoi ( strtok( line.data() , "\t") ) ;
-                    std::string form   = strtok( nullptr, "\t") ;
-                    std::string lemma  = strtok( nullptr, "\t") ;
-                    std::string pos    = strtok( nullptr, "\t") ;
-                    std::string xpos   = strtok( nullptr, "\t") ;
-                    std::string morph  = strtok( nullptr, "\t") ;
-                    int const   head         = std::atoi ( strtok( nullptr, "\t") ) ; /* or a pointer */
-                    std::string rel    = strtok(nullptr, "\t") ;
+            /* Get the first line of the file. */
+            char *      line_buf = nullptr ;
+            size_t      line_buf_size ;
+            ssize_t     line_size ;
+            line_size = getline(&line_buf,&line_buf_size,fp) ;
 
-                    stc.add_token( units::token { id,
-                                                  std::move(form),
-                                                  std::move(lemma),
-                                                  std::move(pos),
-                                                  std::move(xpos),
-                                                  std::move(morph),
-                                                  head,
-                                                  std::move(rel) } ) ;
-                } else {
+            /* Loop through until we are done with the file. */
+            while (line_size >= 0) {
+                if ( *line_buf != '\n' ) {
+                    sscanf (line_buf,"%d\t%s\t%s\t%s\t%s\t%s\t%d\t%s\t",
+                            &id, form, lemma, pos, xpos, morph, &head, rel ) ;
+                    stc.add_token(  units::token { id, form, lemma, pos, xpos, morph, head, rel }  ) ;
+                } else if ( stc.size() ) {
                     sentences_.push_back( std::move( stc ) ) ;
                     stc = units::sentence { } ;
                 }
+                line_size = getline(&line_buf, &line_buf_size, fp);
             }
             if ( stc.size() > 0 ) {
                 sentences_.push_back( std::move ( stc ) ) ;
             }
+            free ( line_buf ) ;
+            fclose(fp);
+
+//            while ( fscanf( fp, "%d\t%s\t%s\t%s\t%s\t%s\t%d\t%s\t%s\t%s\n",
+//                    &id, form, lemma, pos, xpos, morph, &head, rel, useless,useless  ) != EOF ) {
+//                std::cout << form << " " << rel << "\n" ;
+//            }
+//            exit(0) ;
+//            for (  std::string line ; getline( coll06, line ) ; ) {
+//                /* then, new sentence */
+//                if ( line != "" ) {
+//
+//                    fscanf( fp, "%d\t%s\t%s\t%s\t%s\t%s\t%d\t%s\n",&id, form, lemma, pos, xpos, morph, &head, rel  );
+////                    tk.id_ = std::atoi ( strtok( line.data() , "\t") ) ;
+////                    tk.form_   = strtok( nullptr, "\t") ;
+////                    tk.lemma_  = strtok( nullptr, "\t") ;
+////                    tk.pos_    = strtok( nullptr, "\t") ;
+////                    tk.xpos_   = strtok( nullptr, "\t") ;
+////                    tk.morph_  = strtok( nullptr, "\t") ;
+////                    tk.head_   = std::atoi ( strtok( nullptr, "\t") ) ; /* or a pointer */
+////                    tk.rel_    = strtok(nullptr, "\t") ;
+//
+//                    stc.add_token(  units::token { id, form, lemma, pos, xpos, morph, head, rel }  ) ;
+//                } else {
+//                    sentences_.push_back( std::move( stc ) ) ;
+//                    stc = units::sentence { } ;
+//                }
+//            }
+//            if ( stc.size() > 0 ) {
+//                sentences_.push_back( std::move ( stc ) ) ;
+//            }
 
         }
 

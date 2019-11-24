@@ -29,7 +29,7 @@ class Set:
 
         for sentence in self.sentences_:
             sentence.print( lambda stream : filep.write ( stream ) )
-
+        filep.close()
 
     def count_tokens ( self ):
         return sum ( stc.length() for stc in self.sentences_ )

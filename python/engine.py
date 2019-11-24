@@ -3,33 +3,41 @@ from parsers import arcstandard
 from models import random as rd
 from models import oracle as oc
 import assessment
+import stopwatch
 
 path = "/home/pedro/Documentos/CL/SDP/lab/datasets/english/train/"
 path_dev = "/home/pedro/Documentos/CL/SDP/lab/datasets/english/dev/"
 
 def run ( ) :
 
-
+    s = stopwatch.stopwatch()
+    s.start("total")
     print( 'Testing stuff...' )
 
-    gold = Set (file=path_dev + "wsj_dev.conll06.gold")
-    pred = Set (file=path_dev + "wsj_dev.conll06.pred")
-
-    #print ( assessment.uas(gold, pred) )
-    #print ( assessment.las(gold, pred) )
-
-    # sample = Set(path + "sample.conll06")
+    s.start("Read file")
     sample = Set(path + "wsj_train.only-projective.conll06")
-    # sample = Set(path + "sample2.conll06")
+    s.stop()
+
 
     aparser = arcstandard.Parser (sample)
     aoracle = arcstandard.Oracle (sample)
+    s.start("Get oracle transitions")
     omodel = oc.Model(aoracle.transitions())
-    predicted_random = aparser.parse( rd.Model() )
-    predicted_oracle = aparser.parse(omodel)
+    s.stop()
 
+    s.start("Parse random model")
+    predicted_random = aparser.parse( rd.Model() )
+    s.stop()
+
+    s.start("Parse oracle")
+    predicted_oracle = aparser.parse(omodel)
+    s.stop()
+
+    s.start("Assessing")
     print(assessment.uas(sample, predicted_oracle))
     print(assessment.uas(sample, predicted_random))
+    s.stop()
+    s.stop()
 
     # stc = sample.sentences_[0]
     #

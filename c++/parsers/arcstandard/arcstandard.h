@@ -10,7 +10,8 @@
 #include <map>
 #include <algorithm>
 #include <set>
-#include "../../model.h"
+#include "model.h"
+#include "../parser.h"
 
 namespace parsers::arcstandard {
 
@@ -59,11 +60,11 @@ namespace parsers::arcstandard {
 
 
 
-    class stc_parser {
+    class stc_parser : public parsers::parser {
 
     public:
 
-        explicit stc_parser (units::sentence const & stc ) :
+        explicit stc_parser ( units::sentence const & stc ) :
                         stc_ { stc } ,
                         root_ { &stc.root() },
                         parsed_ { stc.size() } {
@@ -76,11 +77,15 @@ namespace parsers::arcstandard {
             std::for_each( stc.tokens().rbegin(), stc.tokens().rend(), [ &buf ] ( auto const & tok ) {
                 buf.push_back(&tok) ;
             } ) ;
-            states_.push_back( { std::move(buf), std::move(stk),{} } ) ;
+            states_.push_back( { std::move( buf ), std::move( stk ), { } } ) ;
 
         }
 
-        inline state_t curr_state ( ) const {
+        inline state_t & curr_state ( ) {
+            return states_.back() ;
+        }
+
+        inline state_t const & curr_state ( ) const {
             return states_.back() ;
         }
 
@@ -104,45 +109,89 @@ namespace parsers::arcstandard {
             return st.buf.size() > 1 || st.stk.empty()  ;
         }
 
+//        void leftarc ( ) {
+////            std::cout << "Left arc ... \n" ;
+//            auto const & st = curr_state() ;
+//            state_t ns = st ;
+////            auto  & st = curr_state() ;
+////            state_t & ns = st ;
+//
+//
+//            ns.arcs [ st.buf.back() ].insert( st.stk.top() ) ;
+////            ns.heads [ st.stk.top() ] = st.buf.back() ;
+//            ns.stk.pop() ;
+//
+//            units::token ntok = *st.stk.top() ;
+//            ntok.head_ = st.buf.back()->id_ ;
+//            parsed_ [ ntok.id_ - 1 ] = std::move ( ntok ) ;
+//            states_.push_back( std::move( ns ) ) ;
+//        }
+
         void leftarc ( ) {
 //            std::cout << "Left arc ... \n" ;
-            auto const & st = curr_state() ;
-            state_t ns = st ;
-            ns.arcs [ st.buf.back() ].insert( st.stk.top() ) ;
-//            ns.heads [ st.stk.top() ] = st.buf.back() ;
-            ns.stk.pop() ;
-            states_.push_back( std::move( ns ) ) ;
-
+            auto  & st = curr_state() ;
             units::token ntok = *st.stk.top() ;
             ntok.head_ = st.buf.back()->id_ ;
             parsed_ [ ntok.id_ - 1 ] = std::move ( ntok ) ;
+
+            st.arcs [ st.buf.back() ].insert( st.stk.top() ) ;
+            st.stk.pop() ;
+
         }
+
+//        void rightarc ( ) {
+////            std::cout << "Right arc ... \n" ;
+//            auto const & st = curr_state() ;
+//            state_t ns = st ;
+////            auto & st = curr_state() ;
+////            state_t & ns = st ;
+//
+//
+//
+//            ns.arcs [ st.stk.top() ].insert( st.buf.back() ) ;
+////            ns.heads [ st.buf.back() ] = st.stk.top() ;
+//            ns.stk.pop() ;
+//            ns.buf.pop_back() ;
+//            ns.buf.push_back( st.stk.top() ) ;
+//
+//            units::token ntok = *st.buf.back() ;
+//            ntok.head_ = st.stk.top()->id_ ;
+//            parsed_ [ ntok.id_ - 1 ] = std::move ( ntok ) ;
+//
+//            states_.push_back( std::move( ns ) ) ;
+//        }
 
         void rightarc ( ) {
 //            std::cout << "Right arc ... \n" ;
-            auto const & st = curr_state() ;
-            state_t ns = st ;
-            ns.arcs [ st.stk.top() ].insert( st.buf.back() ) ;
-//            ns.heads [ st.buf.back() ] = st.stk.top() ;
-            ns.stk.pop() ;
-            ns.buf.pop_back() ;
-            ns.buf.push_back( st.stk.top() ) ;
-            states_.push_back( std::move( ns ) ) ;
+            auto & st = curr_state() ;
 
             units::token ntok = *st.buf.back() ;
             ntok.head_ = st.stk.top()->id_ ;
             parsed_ [ ntok.id_ - 1 ] = std::move ( ntok ) ;
+
+            st.arcs [ st.stk.top() ].insert( st.buf.back() ) ;
+            st.buf.pop_back() ;
+            st.buf.push_back( st.stk.top() ) ;
+            st.stk.pop() ;
+
         }
 
+//        void shift ( ) {
+//            auto const & st = curr_state() ;
+//            state_t ns = st ;
+////            auto & st = curr_state() ;
+////            state_t & ns = st ;
+//            ns.stk.push( ns.buf.back() ) ;
+//            ns.buf.pop_back() ;
+//            states_.push_back( std::move( ns ) ) ;
+//        }
         void shift ( ) {
-            auto const & st = curr_state() ;
-            state_t ns = st ;
-            ns.stk.push( ns.buf.back() ) ;
-            ns.buf.pop_back() ;
-            states_.push_back( std::move( ns ) ) ;
+            auto & st = curr_state() ;
+            st.stk.push( st.buf.back() ) ;
+            st.buf.pop_back() ;
         }
 
-        units::sentence parse ( model::model & m ) {
+        units::sentence parse ( model::model & m ) override {
             while ( !terminal_state() ) {
                 auto scores = m.eval() ;
                 perform_best(scores) ;

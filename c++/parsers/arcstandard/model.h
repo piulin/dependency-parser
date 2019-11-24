@@ -8,7 +8,7 @@
 #include <array>
 #include <random>
 
-namespace  model {
+namespace  parsers::arcstandard::model {
 
     class model {
     public:
