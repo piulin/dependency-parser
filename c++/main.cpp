@@ -25,7 +25,6 @@ int main ( ) {
 //    set::set s( "/home/pedro/Documentos/CL/SDP/lab/datasets/english/train/sample3.conll06" ) ;
     st.stop( ) ;
 
-    parsers::chu_liu_edmonds::stc_parser graph_parser { s.sentences()[ 0 ]  } ;
     parsers::chu_liu_edmonds::model::file_model fm { "/home/pedro/Documentos/CL/SDP/lab/datasets/graph/random.txt" } ;
     parsers::chu_liu_edmonds::model::rd_model crm ;
 

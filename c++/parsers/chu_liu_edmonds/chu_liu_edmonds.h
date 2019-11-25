@@ -85,19 +85,24 @@ namespace parsers::chu_liu_edmonds {
 
     private:
 
-        [[nodiscard]] std::vector < int > loop_list ( int const & node, int const & path_size ) const {
-            std::vector < int >  edge_list ( path_size + 1 ) ;
-            std::fill ( edge_list.begin() + 1, edge_list.end(), -1 ) ;
-            edge_list [ 0 ] = node ;
+        [[nodiscard]] std::vector < int > loop_list (   std::vector < int > const & candidates,
+                                                        int const & path_size ) const {
+            std::vector < int >  edge_list ( path_size + 1 , -1 ) ;
+            std::vector < short >  loop_ixs ( path_size, 0 ) ;
+            int const node = candidates[ 0 ] ;
+            edge_list [ 0 ] = candidates [ 0 ] ;
             int curr_node = node ;
             auto p = ptr() ;
+
             for ( int i = 0; i <= path_size ; ++i ) {
                 bool dead_end = true ;
-                for ( int col = edge_list [ i + 1 ] + 1 ; col < cols_ ; col++ ) {
+                for ( short & node_index = loop_ixs [ i ] ; node_index < candidates.size() ; node_index++ ) {
+                    int col = candidates [ node_index ] ;
                     if ( p [ curr_node*cols_ + col ] ) {
                         curr_node = col ;
                         edge_list [ i + 1 ] = curr_node ;
                         dead_end = false ;
+                        node_index ++ ;
                         break ;
                     }
                 }
@@ -105,7 +110,8 @@ namespace parsers::chu_liu_edmonds {
                     break ;
                 } else if ( dead_end ) {
                     curr_node = edge_list [ i - 1 ] ;
-                    edge_list [ i + 1 ] = -1 ;
+                    loop_ixs [ i ] = 0 ;
+//                    edge_list [ i + 1 ] = -1 ;
                     i -= 2 ;
                 } else if ( i == path_size - 1 ) {
                     curr_node = edge_list [ i ] ;
@@ -129,28 +135,38 @@ namespace parsers::chu_liu_edmonds {
          * @return node where the loops begins
          */
         [[nodiscard]] std::vector < int > is_there_loop ( ) const {
-            using mul_type = short ;
-            matrix < mul_type > r1 {rows_, cols_ } ;
-            matrix < mul_type > r2 = *this ;
+            using mul_t = short ;
+            matrix < mul_t > r1 {rows_, cols_ } ;
+            matrix < mul_t > r2 = *this ;
 
-            mul_type * pres = r1.ptr() ;
-            mul_type * pmul = r2.ptr() ;
+            mul_t * pres = r1.ptr() ;
+            mul_t * pmul = r2.ptr() ;
             bool const * padj = ptr() ;
             /* first iteration */
+            std::vector < int > nodes_in_loops ;
             for (int l = 0; l < rows_ ; ++l) {
                 for(int i=0;i<rows_;i++) {
                     for(int j=0;j<cols_;j++) {
                         pres [ i*cols_+j ] = 0 ;
                         for(int k=0;k<cols_;k++) {
-                            pres [ i*cols_+j ] +=  pmul [ i * cols_ + k ] * static_cast<mul_type> ( padj [ k * cols_ + j ] ) ;
-                        }
-                        if ( i==j && pres [ i*cols_+j ] > 0 ) {
-//                            std::cout << "LOOP FOUND: " << l+2 << '\n';
-                            return loop_list( i, l + 2 ) ;
+                            pres [ i*cols_+j ] +=  pmul [ i * cols_ + k ] * static_cast<mul_t> ( padj [k * cols_ + j ] ) ;
                         }
                     }
                 }
+
+                /* count number of occurrences in diagonal */
+                for (int m = 0; m < rows_; ++m) {
+                    if ( pres [ m*cols_ + m ] > 0 ) {
+                        nodes_in_loops.emplace_back( m ) ;
+                    }
+                }
+                if ( !nodes_in_loops.empty ( ) ) {
+                    return loop_list( nodes_in_loops , l + 2 ) ;
+                }
+
+//                return loop_list( i, l + 2 ) ;
                 std::swap( pres , pmul ) ;
+                nodes_in_loops.clear() ;
             }
             return { } ;
         }
@@ -322,7 +338,6 @@ namespace parsers::chu_liu_edmonds {
     private:
 
     } ;
-
 
     class stc_parser  {
     public:

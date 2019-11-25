@@ -37,8 +37,8 @@ namespace parsers::chu_liu_edmonds::model {
     class rd_model : public model {
     public:
         rd_model ( ) {
-//            int s = 1574603579 ;
-            int s = time(nullptr) ;
+            int s = 1574603579 ;
+//            int s = time(nullptr) ;
             std::cout << "seed: " << s <<'\n' ;
             srand(s);
         }
