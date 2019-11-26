@@ -47,7 +47,7 @@ namespace parsers::chu_liu_edmonds::model {
         }
 
     private:
-        short max_ = 20000  ;
+        short max_ = 200  ;
     };
 
 
