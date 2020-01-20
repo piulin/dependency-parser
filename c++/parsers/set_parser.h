@@ -23,7 +23,7 @@ namespace parsers {
         set::set parse ( M & m ) {
             std::vector < units::sentence > stcs { s_.sentences().size() } ;
 
-            //#pragma omp parallel for default (shared)
+//            #pragma omp parallel for default (shared)
             for ( size_t i = 0 ; i < s_.sentences().size() ; i++ ) {
                 auto const & stc = s_.sentences() [ i ] ;
                 T p { stc } ;

@@ -3,3 +3,4 @@
 *.conll06
 __pycache__/
 c++/cmake-build-debug/
+python/venv

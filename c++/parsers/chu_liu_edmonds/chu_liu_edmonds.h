@@ -9,84 +9,13 @@
 #include <algorithm>
 #include "../../units.h"
 #include "../parser.h"
+#include "matrix.h"
 #include "model.h"
 #include <iomanip>
 #include <tuple>
 #include <functional>
 
 namespace parsers::chu_liu_edmonds {
-
-
-    /**
-     * A matrix structure.
-     * @tparam T
-     */
-    template < typename T >
-    class matrix {
-    public:
-        explicit matrix ( size_t const & rows , size_t const & cols )
-                : rows_ { rows } ,
-                  cols_ { cols } ,
-                  m_ { std::make_unique < T[] > ( rows*cols ) } { }
-
-        template < typename U >
-        matrix ( matrix < U > const & m ) : matrix { m.rows ( ) , m.cols ( ) } {
-            auto p = ptr ( );
-            auto r = m.ptr ( );
-            for ( int i = 0 ; i < rows_*cols_ ; ++i ) {
-                p[ i ] = static_cast< T > ( r[ i ] );
-            }
-        }
-
-        matrix ( matrix && other ) noexcept = default;
-
-        matrix & operator= ( const matrix & other ) = delete;
-
-        matrix & operator= ( matrix && other ) = delete;
-
-        [[nodiscard]] inline T const * ptr ( ) const {
-            return m_.get ( );
-        }
-
-        inline T * ptr ( ) {
-            return m_.get ( );
-        }
-
-        inline size_t const & rows ( ) const {
-            return rows_;
-        }
-
-        inline size_t const & cols ( ) const {
-            return cols_;
-        }
-
-
-    protected:
-        size_t rows_;
-        size_t cols_;
-        std::unique_ptr < T[] > m_;
-    };
-
-    template < typename T >
-    std::ostream & operator<< ( std::ostream & o , matrix < T > const & m ) {
-        o << "[\n";
-        auto const p = m.ptr ( );
-        o << "     " ;
-        for ( int j = 0 ; j < m.cols ( ) ; ++j ) {
-            o << std::setw ( 3 ) << j << ":";
-        }
-        o << "\n\n" ;
-
-        for ( int i = 0 ; i < m.rows ( ) ; ++i ) {
-            o << std::setw ( 3 ) << i << ": " ;
-            for ( int j = 0 ; j < m.cols ( ) ; ++j ) {
-                o << std::setw ( 4 ) << p[ i*m.cols ( ) + j ];
-            }
-            o << '\n';
-        }
-        o << "]\n";
-        return o;
-    }
 
     template < typename T >
     std::ostream & operator<< ( std::ostream & o , std::vector < T > const & m ) {
@@ -255,7 +184,24 @@ namespace parsers::chu_liu_edmonds {
                 t.head_ = row;
                 ns.tokens_.push_back ( std::move ( t ) );
             }
-            return ns;
+            return ns ;
+        }
+
+        [[nodiscard]] std::vector < int > to_heads ( ) const {
+            auto p = ptr ( ) ;
+            std::vector < int > heads ( rows_ - 1 ) ;
+            for ( int i = 1 ; i < cols_ ; ++i ) {
+                int row = -1;
+                /* get the head of the token */
+                for ( int j = 0 ; j < rows_ ; ++j ) {
+                    if ( p[ j*rows_ + i ] ) {
+                        row = j ;
+                        break;
+                    }
+                }
+                heads [ i - 1 ] = row ;
+            }
+            return heads ;
         }
 
     };
@@ -270,7 +216,7 @@ namespace parsers::chu_liu_edmonds {
     public:
         /* cost will be organised the other way round, i.e. a transposed matrix. This is done due to efficiency affairs. */
         explicit cost ( size_t const & rows , size_t const & cols ) : matrix < T > { rows , cols } {
-            std::fill ( this->ptr ( ) , this->ptr ( ) + rows*cols , -1 );
+            std::fill ( this->ptr ( ) , this->ptr ( ) + rows*cols , std::numeric_limits<T>::min () );
         }
 
         /**
@@ -281,11 +227,11 @@ namespace parsers::chu_liu_edmonds {
             auto const p = this->ptr ( );
             auto const & r = this->rows_;
             auto const & c = this->cols_;
-            adjacency ad { c , c };
+            adjacency ad { c , c } ;
             auto a = ad.ptr ( );
             for ( int i = 0 ; i < r ; ++i ) {
                 /* cost function that is maximized */
-                int j = std::max_element ( p + i*c , p + ( i + 1 )*c ) - ( p + i*c );
+                int j = std::max_element ( p + i*c , p + ( i + 1 )*c ) - ( p + i*c ) ;
                 a[ j*c + i + 1 ] = true;
             }
             return ad;
@@ -302,11 +248,8 @@ namespace parsers::chu_liu_edmonds {
             int const no_edges = edges.size ( );
 
             /* current cost matrix properties */
-            auto const p = this->ptr ( );
-            auto const & r = this->rows_;
-            auto const & c = this->cols_;
-
             /* NOTICE THAT the cost matrix is NOT a square matrix */
+            auto const & r = this->rows_;
 
             /* Prepare a list with the indices of non contracted nodes for the rows  */
             std::vector < int > non_contracted_rows ( r );
@@ -340,14 +283,14 @@ namespace parsers::chu_liu_edmonds {
             return std::make_tuple ( std::move ( cs ) ,
                                      std::move ( non_contracted_cols ) ,
                                      std::move ( v_hp_correspondence ) ,
-                                     std::move ( v_out_correspondence ) );
+                                     std::move ( v_out_correspondence ) ) ;
         }
 
         int leaving_arcs_highest_index (    int const & vhp,
                                             int const & node_outside_loop,
                                             std::vector < int > const & non_contracted_rows,
                                             std::vector < int > const & edges ) const {
-            auto const p = this->ptr ( );
+            T * const p = this->ptr ( );
             auto const & c = this->cols_;
             int const & row = node_outside_loop ;
             T max = -1;
@@ -373,13 +316,13 @@ namespace parsers::chu_liu_edmonds {
                                                            std::vector < int > const & non_contracted_rows ,
                                                            std::vector < int > const & non_contracted_cols ) const {
             /* get stuff of the actual cost matrix */
-            auto const p = this->ptr ( );
+            T const * const p = this->ptr ( );
             auto const & r = this->rows_;
             auto const & c = this->cols_;
 
             /* create a new matrix for the contracted cost matrix */
-            cost cs { r + 1 - no_edges , c + 1 - no_edges };
-            auto const csp = cs.ptr ( );
+            cost < T > cs { r + 1 - no_edges , c + 1 - no_edges };
+            T * const csp = cs.ptr ( );
             auto const & csc = cs.cols_;
 
             /* these vectors store the indexes of the old rows and columns in the new cost matrix */
@@ -412,18 +355,18 @@ namespace parsers::chu_liu_edmonds {
          * @param edges edges of the loop.
          * @param pos_rows correspondence between indices of contracted cost matrix and current cost matrix.
          */
-        inline auto leaving_arcs ( cost & cs ,
+        inline auto leaving_arcs ( cost < T > & cs ,
                                    std::vector < int > const & non_contracted_rows ,
                                    std::vector < int > const & edges ,
                                    std::vector < int > const & pos_rows ) const {
-            auto const p = this->ptr ( );
+            T const * const p = this->ptr ( );
             auto const & c = this->cols_;
-            auto csp = cs.ptr ( );
+            T * csp = cs.ptr ( );
             auto const & csc = cs.cols_;
             /* score which are the arcs with maximum score for each row */
             std::vector < int > v_out_correspondence ( c , -1 );
             for ( auto const & row : non_contracted_rows ) {
-                int max = -1;
+                T max = std::numeric_limits < T >::min () ;
                 int max_row = -1;
                 int max_col = -1;
                 for ( auto const & col : edges ) {
@@ -456,29 +399,29 @@ namespace parsers::chu_liu_edmonds {
                                                   std::vector < int > const & pos_rows ,
                                                   std::vector < int > const & pos_cols ) const {
 
-            auto const p = this->ptr ( );
+            T const * const p = this->ptr ( );
             auto const & c = this->cols_;
-            auto csp = cs.ptr ( );
+            T * csp = cs.ptr ( );
             auto const & csc = cs.cols_;
             auto const & csr = cs.rows_;
 
             /* saving some memory */
             auto[minscore , maxscore] = std::minmax_element ( edges.begin ( ) , edges.end ( ) );
             /* transition score of the previous node */
-            std::vector < int > scores ( *maxscore - *minscore + 1 );
+            std::vector < T > scores ( *maxscore - *minscore + 1 );
             /* total score of the loop */
-            int score_loop = 0;
+            T score_loop = 0 ;
 
             /* calculate the total score of the loop, and fill the scores vector. */
             for ( int i = 0 , j = 1 ; i < edges.size ( ) - 1 ; ++i , ++j ) {
                 int const & from = edges[ i ];
                 int const & to = edges[ i + 1 ] - 1;
-                int const & v = p[ from + to*c ];
+                T const & v = p[ from + to*c ];
                 score_loop += v;
                 scores[ edges[ j ] - *minscore ] = v;
             }
             /* compute the boundary case */
-            int const & f = p[ edges.back ( ) + ( edges[ 0 ] - 1 )*c ];
+            T const & f = p[ edges.back ( ) + ( edges[ 0 ] - 1 )*c ];
             scores[ edges[ 0 ] - *minscore ] = f;
             score_loop += f;
 
@@ -486,11 +429,11 @@ namespace parsers::chu_liu_edmonds {
             std::vector < int > v_hp_correspondences ( c , -1000 ) ;
             /* fill the values for all incoming arcs */
             for ( auto const & col : non_contracted_cols ) {
-                int max = -1;
+                T max = std::numeric_limits < T >::min () ;
                 int max_row = -1;
                 for ( int row : edges ) {
                     row--;
-                    int const v = p[ row*c + col ] + score_loop - scores[ row - *minscore + 1 ];
+                    T const v = p[ row*c + col ] + score_loop - scores[ row - *minscore + 1 ] ;
                     if ( v > max ) {
                         max = v;
                         max_row = row + 1;
@@ -519,17 +462,9 @@ namespace parsers::chu_liu_edmonds {
          * @param m model that gives the values.
          * @param cm cost matrix to be updated.
          */
-        void fill_costs_matrix ( parsers::chu_liu_edmonds::model::model & m , matrix < int > & cm ) {
-            int * pm = cm.ptr ( );
-            for ( int i = 0 ; i < cm.rows ( ) ; ++i ) {
-                for ( int j = 0 ; j < cm.cols ( ) ; ++j ) {
-                    if ( i + 1 == j ) {
-                        pm[ i*cm.cols ( ) + j ] = -1;
-                    } else {
-                        pm[ i*cm.cols ( ) + j ] = m.eval ( );
-                    }
-                }
-            }
+        template < typename T >
+        void fill_costs_matrix ( parsers::chu_liu_edmonds::model::model < T > & m , matrix < T > & cm ) {
+
         }
 
         /**
@@ -537,15 +472,23 @@ namespace parsers::chu_liu_edmonds {
          * @param m model.
          * @return
          */
-        units::sentence parse ( parsers::chu_liu_edmonds::model::model & m ) {
+        template < typename T >
+        units::sentence parse ( parsers::chu_liu_edmonds::model::model < T > & m ) {
             /* +1, because of root */
-            cost < int > cm { s_.size ( ) , s_.size ( ) + 1 };
-            fill_costs_matrix ( m , cm );
+            cost < T > cm { s_.size ( ) , s_.size ( ) + 1 };
+            m.eval ( s_ , cm ) ;
             adjacency msp = chu_liu_edmonds ( cm );
-            if ( !msp.is_there_loop ( ).empty ( ) ) {
-                throw std::runtime_error ( "ha habido un error" );
-            }
             return msp.to_stc ( s_ );
+        }
+
+        template < typename T >
+        std::vector < int > heads ( parsers::chu_liu_edmonds::model::model < T > & m ) {
+            /* +1, because of root */
+            cost < T > cm { s_.size ( ) , s_.size ( ) + 1 };
+            m.eval ( s_ , cm ) ;
+            adjacency msp = chu_liu_edmonds ( cm );
+//            std::cout << "ADJACENCY : " << msp ;
+            return msp.to_heads () ;
         }
 
         /**
@@ -617,7 +560,8 @@ namespace parsers::chu_liu_edmonds {
          * @param cm initial cost matrix
          * @return adjacency matrix -> MST
          */
-        adjacency chu_liu_edmonds ( cost < int > const & cm ) {
+        template < typename T >
+        adjacency chu_liu_edmonds ( cost < T > const & cm ) {
                 adjacency a = cm.adj ( );
                 std::vector < int > loop = a.is_there_loop ( );
                 if ( !loop.empty ( ) ) {

@@ -1,10 +1,12 @@
 #include <iostream>
 #include "set.h"
 #include "assessment.h"
-#include "parsers/arcstandard/model.h"
+//#include "parsers/arcstandard/model.h"
 #include "time/time.h"
 #include "parsers/set_parser.h"
 #include "parsers/chu_liu_edmonds/chu_liu_edmonds.h"
+#include "parsers/chu_liu_edmonds/feat.h"
+#include "parsers/chu_liu_edmonds/perceptron.h"
 
 
 std::string const path_train = "/home/pedro/Documentos/CL/SDP/lab/datasets/english/train/" ;
@@ -20,23 +22,51 @@ int main ( ) {
 
     st.start( "Reading set from file" ) ;
 //    set::set s( "/home/pedro/Documentos/CL/SDP/lab/datasets/english/train/wsj_train.only-projective.first-1k.conll06" ) ;
-    set::set s( path_train + "wsj_train.only-projective.conll06" ) ;
+//    set::set s( path_train + "wsj_train.only-projective.conll06" ) ;
 //    set::set s( "/home/pedro/Documentos/CL/SDP/lab/datasets/graph/s.conll06.txt" ) ;
-//    set::set s( "/home/pedro/Documentos/CL/SDP/lab/datasets/english/train/sample3.conll06" ) ;
+    set::set s( "/home/pedro/Documentos/CL/SDP/lab/datasets/english/train/sample3.conll06" ) ;
     st.stop( ) ;
 
-    parsers::chu_liu_edmonds::model::file_model fm { "/home/pedro/Documentos/CL/SDP/lab/datasets/graph/random.txt" } ;
-    parsers::chu_liu_edmonds::model::rd_model crm ;
+
+
+//    parsers::chu_liu_edmonds::features::tmpl feat ;
+//    st.start ("Feature extraction") ;
+//    feat.gold_features ( s ) ;
+//    st.stop () ;
+
+
+    parsers::chu_liu_edmonds::model::file_model < int > fm { "/home/pedro/Documentos/CL/SDP/lab/datasets/graph/random.txt" } ;
+    parsers::chu_liu_edmonds::model::rd_model < float >  crm ;
+
+
+    parsers::chu_liu_edmonds::model::perceptron prcp { 500 } ;
+
+
+    st.start ( "Training perceptron" );
+    prcp.train ( s ) ;
+    st.stop ( ) ;
+
+    st.start ( "Dumping perceptron" ) ;
+    prcp.dump ( "percp.tx" ) ;
+    st.stop ( ) ;
+
 
     parsers::set_parser<parsers::chu_liu_edmonds::stc_parser> grapph_parser { s }  ;
 
-    st.start( "Graph parser" ) ;
-    auto gparsed = grapph_parser.parse ( [&crm] (units::sentence const & s, parsers::chu_liu_edmonds::stc_parser & e) {
-        return e.parse(crm ) ;
-    } ) ;
 
+
+
+    st.start( "Graph parser" ) ;
+    auto gparsed = grapph_parser.parse ( [&prcp] (units::sentence const & s, parsers::chu_liu_edmonds::stc_parser & e) {
+        return e.parse(prcp ) ;
+    } ) ;
     st.stop( ) ;
+
+
+
     gparsed.write(std::ofstream("c.txt"));
+
+
     std::cout << "UAS (graph): \n" << assessment::uas(s, gparsed) ;
 
     std::exit(0);

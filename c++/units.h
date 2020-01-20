@@ -30,7 +30,7 @@ namespace units {
 
     public:
 
-        inline explicit sentence ( ) : root_ {  0, "Root", "root", "_",
+        inline explicit sentence ( ) : root_ {  0, "Root", "_LR", "_PR",
                                                                 "_", "_", -1, "_"  } { }
 
         sentence(const sentence& other) = delete;
