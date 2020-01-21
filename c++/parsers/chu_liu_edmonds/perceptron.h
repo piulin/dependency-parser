@@ -19,27 +19,28 @@ namespace parsers::chu_liu_edmonds::model {
         size_t      size_   ;
     } ;
 
+    class perceptron ;
+
     class scryer : public model < int > {
     public:
-        explicit scryer ( std::string const & filename ) ;
+        scryer ( perceptron & p );
     protected:
-
-        scryer ( );
         scryer (const scryer & other) = delete ;
+
         scryer (scryer && other) = delete ;
-        scryer & operator=(const scryer & other) = delete ;
+
+        scryer & operator=( const scryer & other) = delete ;
         scryer & operator=(scryer && other) = delete ;
 
-        int dot_product ( const features::feat & f );
-
-        w                                           w_              ;
-        parsers::chu_liu_edmonds::features::tmpl    t_              ;
+        perceptron                                &  p_              ;
+        w                                         &  w_              ;
+        parsers::chu_liu_edmonds::features::tmpl  &  t_              ;
     public:
         virtual void eval ( units::sentence const & stc , matrix < int > & m ) override;
     } ;
 
 
-    class perceptron : public scryer {
+    class perceptron : public model < int >  {
 
 
     public:
@@ -56,10 +57,14 @@ namespace parsers::chu_liu_edmonds::model {
         void dump ( std::string const & filename ) ;
 
 
-    private:
         size_t                                      q_              ;
         w                                           u_              ;
         size_t                                      chunk_          ;
+        w                                           w_              ;
+        parsers::chu_liu_edmonds::features::tmpl    t_              ;
+        int dot_product ( const features::feat & f );
+
+    protected:
 
         std::vector < int > to_heads ( const units::sentence & stc );
 
@@ -72,6 +77,8 @@ namespace parsers::chu_liu_edmonds::model {
 
         void enlarge ( w & target );
 
+        template < typename FEATOP >
+        void impl_eval ( const units::sentence & stc , matrix < int > & m , FEATOP && featop );
     } ;
 
 

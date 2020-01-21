@@ -7,28 +7,47 @@
 using namespace parsers::chu_liu_edmonds::model ;
 
 
-perceptron::perceptron ( size_t const & chunk ) : scryer (),
-     chunk_ { chunk }  {
+perceptron::perceptron ( size_t const & chunk ) : t_ {} ,
+     chunk_ { chunk }, q_ { 0 }  {
     /* legacy code because of realloc*/
     w_.size_= chunk  ;
     w_.f_ = ( int * ) malloc ( chunk_*sizeof ( int ) ) ;
     std::fill ( w_.f_ , w_.f_ + w_.size_ , 0 ) ;
-//    u_.size_ = chunk ;
-//    u_.f_ = ( int * ) malloc ( chunk_*sizeof ( int ) ) ;
-//    std::fill ( u_.f_ , u_.f_ + u_.size_ , 0 ) ;
+    u_.size_ = chunk ;
+    u_.f_ = ( int * ) malloc ( chunk_*sizeof ( int ) ) ;
+    std::fill ( u_.f_ , u_.f_ + u_.size_ , 0 ) ;
 
 }
 
-perceptron::perceptron ( std::string const & filename ) : scryer ( filename ) {
+perceptron::perceptron ( std::string const & filename ) {
     std::ifstream f ( filename , std::ofstream::binary );
-    size_t size ;
-    f >> size ;
+    f >> w_.size_ ;
     f >> chunk_ ;
+    f.ignore ( 1 ) ;
+    w_.f_ = ( int * ) malloc ( w_.size_*sizeof ( int ) ) ;
+    if ( w_.f_ == nullptr ) {
+        throw std::runtime_error ( "Not enough memory to allocate weight vector of the  perceptron :(" ) ;
+    }
+
+    f.read ( reinterpret_cast< char * > ( w_.f_ ) , w_.size_*sizeof ( int ) ) ;
+
+    for ( auto & ht : t_.h_ ) {
+        size_t s = 0 ;
+        f >> s ;
+        for ( int i = 0 ; i < s ; ++i ) {
+            std::string key ;
+            size_t val ;
+            f >> key ;
+            f.ignore ( 1 ) ;
+            f.read ( reinterpret_cast < char * > ( &val ) , sizeof ( size_t ) ) ;
+            ht[ std::move ( key ) ] =  val ;
+        }
+    }
 }
 
 perceptron::~perceptron ( ) {
     free ( w_.f_ ) ;
-//    free ( u_.f_ ) ;
+    free ( u_.f_ ) ;
 }
 
 void perceptron::train ( set::set const & s, size_t const & ephocs ) {
@@ -135,8 +154,6 @@ void perceptron::eval ( units::sentence const & stc , parsers::chu_liu_edmonds::
 }
 
 
-
-
 std::vector < int > perceptron::to_heads ( units::sentence const & stc ) {
     std::vector < int > heads ( stc.size ( ) ) ;
     for ( int i = 0 ; i < stc.size ( ) ; ++i ) {
@@ -188,13 +205,15 @@ void perceptron::dump ( std::string const & filename ) {
 }
 
 
-int scryer::dot_product ( features::feat const & f ) {
+int perceptron::dot_product ( features::feat const & f ) {
     int product = 0 ;
     for ( auto const & e : f.p_.pos_ ) {
         product += w_.f_ [ e ] ;
     }
     return product ;
 }
+
+
 
 
 void scryer::eval ( units::sentence const & stc , parsers::chu_liu_edmonds::matrix < int > & m ) {
@@ -204,7 +223,7 @@ void scryer::eval ( units::sentence const & stc , parsers::chu_liu_edmonds::matr
         features::feat f ;
         t_.extract_features < std::string > ( stc, -1 , j , parsers::chu_liu_edmonds::features::dir_right , j + 1 ,  f,
                                               &features::tmpl::get_feature ) ;
-        pm[ j*m.cols ( ) ] = dot_product ( f ) ;
+        pm[ j*m.cols ( ) ] = p_.dot_product ( f ) ;
     }
     for ( int i = 0 ; i < m.rows ( ) ; ++i ) {
         for ( int j = 1 ; j < m.cols ( ) ; ++j ) {
@@ -216,37 +235,13 @@ void scryer::eval ( units::sentence const & stc , parsers::chu_liu_edmonds::matr
                 t_.extract_features < std::string >  ( stc , j - 1, i ,
                                                        ( j > i + 1  ) ? parsers::chu_liu_edmonds::features::dir_left : parsers::chu_liu_edmonds::features::dir_right ,
                                                        std::abs (i+1-j),  f , &features::tmpl::get_feature ) ;
-                upd = dot_product ( f ) ;
+                upd = p_.dot_product ( f ) ;
             }
         }
     }
 }
 
-scryer::scryer ( ) : t_ { } { }
 
-scryer::scryer ( std::string const & filename ) {
-    std::ifstream f ( filename , std::ofstream::binary );
-    size_t chunk ;
-    f >> w_.size_ ;
-    f >> chunk ;
-    f.ignore ( 1 ) ;
-    w_.f_ = ( int * ) malloc ( w_.size_*sizeof ( int ) ) ;
-    if ( w_.f_ == nullptr ) {
-        throw std::runtime_error ( "Not enough memory to allocate weight vector of the  perceptron :(" ) ;
-    }
+scryer::scryer ( perceptron & p ) : p_ { p }, w_ {p_.w_}, t_ {p_.t_ } {
 
-    f.read ( reinterpret_cast< char * > ( w_.f_ ) , w_.size_*sizeof ( int ) ) ;
-
-    for ( auto & ht : t_.h_ ) {
-        size_t s = 0 ;
-        f >> s ;
-        for ( int i = 0 ; i < s ; ++i ) {
-            std::string key ;
-            size_t val ;
-            f >> key ;
-            f.ignore ( 1 ) ;
-            f.read ( reinterpret_cast < char * > ( &val ) , sizeof ( size_t ) ) ;
-            ht[ std::move ( key ) ] =  val ;
-        }
-    }
 }

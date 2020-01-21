@@ -59,22 +59,18 @@ namespace engine {
                 prcp.dump ( options::dump_filename );
                 st.stop ( );
             }
-
-            scry ( prcp ) ;
+            parsers::chu_liu_edmonds::model::scryer sc { prcp };
+            scry ( sc ) ;
 
         } else if ( !options::model_filename.empty () ) {
             st.start ( "Reading model from file" ) ;
-            parsers::chu_liu_edmonds::model::scryer sc { options::model_filename } ;
+            parsers::chu_liu_edmonds::model::perceptron prcp { options::model_filename };
+            parsers::chu_liu_edmonds::model::scryer sc { prcp } ;
             st.stop ( ) ;
-
             scry ( sc ) ;
-
         }
 
     }
-
-
-
 }
 
 #endif //C___ENGINE_H
