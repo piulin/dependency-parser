@@ -13,11 +13,13 @@ namespace options {
 
     std::string training_set;
     std::string test_set;
+    std::string dev_set ;
     std::string dump_filename;
     std::string model_filename;
+
     std::string predicted_set;
 
-    size_t chunk_size = 1000 ;
+    size_t chunk_size = 10000 ;
     size_t ephocs = 5 ;
 
 
@@ -26,7 +28,7 @@ namespace options {
         int c;
 
         opterr = 0;
-        while ( ( c = getopt ( argc , argv , "t:a:r:d:e:c:o:" ) ) != -1 ) {
+        while ( ( c = getopt ( argc , argv , "t:a:r:d:e:c:o:f:" ) ) != -1 ) {
             switch ( c ) {
                 case 't':
                     training_set = optarg;
@@ -48,6 +50,9 @@ namespace options {
                     break;
                 case 'c':
                     chunk_size = atoi( optarg ) ;
+                    break;
+                case 'f':
+                    dev_set = optarg ;
                     break;
                 case '?':
                     throw std::invalid_argument ( "Invalid option: -"s + char ( optopt ) );

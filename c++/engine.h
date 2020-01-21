@@ -24,7 +24,7 @@ namespace engine {
     void scry ( parsers::chu_liu_edmonds::model::scryer & scry ) {
         if ( !options::test_set.empty () ) {
             set::set s { options::test_set } ;
-            parsers::set_parser < parsers::chu_liu_edmonds::stc_parser > grapph_parser { s } ;
+            parsers::set_parser  grapph_parser { s } ;
 
             st.start ( "Chu-Liu-Edmonds parsing" );
             auto gparsed = grapph_parser.parse (
@@ -45,13 +45,16 @@ namespace engine {
 
         if ( ! options::training_set.empty () ) {
             st.start ( "Reading training set from file" );
-            set::set s( options::training_set ) ;
+            set::set s { options::training_set } ;
             st.stop ( );
-            parsers::chu_liu_edmonds::model::perceptron prcp { options::chunk_size };
-
+            parsers::chu_liu_edmonds::model::perceptron prcp { options::chunk_size } ;
 
             st.start ( "Training perceptron" );
-            prcp.train ( s, options::ephocs );
+            if ( !options::dev_set.empty ( ) ) {
+                prcp.train ( s , options::ephocs , set::set { options::dev_set } );
+            } else {
+                prcp.train ( s , options::ephocs );
+            }
             st.stop ( );
 
             if ( !options::dump_filename.empty () ) {
@@ -64,7 +67,7 @@ namespace engine {
 
         } else if ( !options::model_filename.empty () ) {
             st.start ( "Reading model from file" ) ;
-            parsers::chu_liu_edmonds::model::perceptron prcp { options::model_filename };
+            parsers::chu_liu_edmonds::model::perceptron prcp { options::model_filename } ;
             parsers::chu_liu_edmonds::model::scryer sc { prcp } ;
             st.stop ( ) ;
             scry ( sc ) ;

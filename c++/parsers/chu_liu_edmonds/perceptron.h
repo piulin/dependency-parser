@@ -53,14 +53,16 @@ namespace parsers::chu_liu_edmonds::model {
         perceptron & operator=(const perceptron & other) = delete ;
         perceptron & operator=(perceptron && other) = delete ;
         virtual void eval ( units::sentence const & stc , matrix < int > & m ) override;
-        void train ( set::set const & s, size_t const & ephocs ) ;
+        void train ( const set::set & s , const size_t & ephocs , std::optional < set::set > dev_set = std::nullopt );
+
+
+//        void train ( set::set const & s, size_t const & ephocs ) ;
         void dump ( std::string const & filename ) ;
-
-
         w                                           u_              ;
         size_t                                      chunk_          ;
         w                                           w_              ;
         parsers::chu_liu_edmonds::features::tmpl    t_              ;
+
         int dot_product ( const features::feat & f );
 
     protected:
@@ -77,6 +79,10 @@ namespace parsers::chu_liu_edmonds::model {
         void enlarge ( w & target );
 
         void average ( const size_t & q );
+
+        std::unique_ptr < int[] > cpy_average ( const size_t & q );
+
+        void test_dev_set ( const set::set & ds , const size_t & q );
     } ;
 
 

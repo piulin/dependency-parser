@@ -8,7 +8,6 @@
 #include <memory>
 #include <algorithm>
 #include "../../units.h"
-#include "../parser.h"
 #include "matrix.h"
 #include "model.h"
 #include <iomanip>
@@ -54,7 +53,7 @@ namespace parsers::chu_liu_edmonds {
             /* Iterate until we have a valid loop (conditions down) */
             for ( int i = 0 ; i <= loop_size ; ++i ) {
                 bool dead_end = true;
-                /* iterate the columns of the candidates, and check if a path throuhg them is possible */
+                /* iterate the columns of the candidates, and check if a path through them is possible */
                 for ( short & node_index = loop_ixs[ i ] ; node_index < candidates.size ( ) ; node_index++ ) {
                     int col = candidates[ node_index ];
                     if ( p[ curr_node*cols_ + col ] ) {
@@ -130,6 +129,7 @@ namespace parsers::chu_liu_edmonds {
             for ( int l = 0 ; l < rows_ ; ++l ) {
 
                 /* loops for matrix multiplication */
+                #pragma omp parallel for default(shared)
                 for ( int i = 0 ; i < rows_ ; i++ ) {
                     for ( int j = 0 ; j < cols_ ; j++ ) {
                         pres[ i*cols_ + j ] = 0;
@@ -229,6 +229,7 @@ namespace parsers::chu_liu_edmonds {
             auto const & c = this->cols_;
             adjacency ad { c , c } ;
             auto a = ad.ptr ( );
+            #pragma omp parallel for default (shared)
             for ( int i = 0 ; i < r ; ++i ) {
                 /* cost function that is maximized */
                 int j = std::max_element ( p + i*c , p + ( i + 1 )*c ) - ( p + i*c ) ;
@@ -456,16 +457,6 @@ namespace parsers::chu_liu_edmonds {
 
         explicit stc_parser ( units::sentence const & s ) :
                 s_ { s } { }
-
-        /**
-         * Fills the cost matrix given the model m.
-         * @param m model that gives the values.
-         * @param cm cost matrix to be updated.
-         */
-        template < typename T >
-        void fill_costs_matrix ( parsers::chu_liu_edmonds::model::model < T > & m , matrix < T > & cm ) {
-
-        }
 
         /**
          * Parsing a sentence given the model m.

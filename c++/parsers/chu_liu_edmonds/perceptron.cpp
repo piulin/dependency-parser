@@ -3,6 +3,8 @@
 #include "perceptron.h"
 #include <cmath>
 #include "chu_liu_edmonds.h"
+#include "../../assessment.h"
+#include "../set_parser.h"
 
 using namespace parsers::chu_liu_edmonds::model ;
 
@@ -50,13 +52,12 @@ perceptron::~perceptron ( ) {
     free ( u_.f_ ) ;
 }
 
-void perceptron::train ( set::set const & s, size_t const & ephocs ) {
+void perceptron::train ( set::set const & s, size_t const & ephocs, std::optional < set::set > dev_set ) {
     size_t q = 0 ;
     for ( int j = 0 ; j < ephocs ; ++j ) {
         std::cout << "\nEphoc: " << j << '\n' ;
         int total_correct = 0 ;
         int total = 0 ;
-
         for ( int i = 0 ; i < s.sentences_.size ( ) ; ++i ) {
             q ++ ;
             if ( (i % 100) == 0 ) {
@@ -70,7 +71,6 @@ void perceptron::train ( set::set const & s, size_t const & ephocs ) {
 
             int const correct = count_correct ( gold_hds , hds ) ;
             if ( correct != gold_hds.size () ) {
-//                update ( hds , stc , [ &gold_hds ] ( auto & e, auto const & i, auto const & h ) { if ( gold_hds [ i ] != h ) e--; } ) ;
                 update ( hds , stc , [ ] ( auto & e ) {
                     e--;
                     } , [ &q ] ( auto & e ) {
@@ -82,13 +82,15 @@ void perceptron::train ( set::set const & s, size_t const & ephocs ) {
                     e += q ;
                 } ) ;
             }
-            total_correct += correct ;
             total += gold_hds.size ( ) ;
+            total_correct += correct ;
         }
-        std::cout << "\nUAS: " << std::fixed << std::setw (5) << static_cast< float > ( total_correct )*100.0f/static_cast< float >( total ) <<
+        std::cout << "\nUAS (iterative): " << std::fixed << std::setw (5) << static_cast< float > ( total_correct )*100.0f/static_cast< float >( total ) <<
                   " Correct: " << total_correct << " Out of: " << total << '\n' ;
 
-
+        if ( dev_set != std::nullopt ) {
+            test_dev_set ( dev_set.value () , q ) ;
+        }
     }
 
     std::cout << "Training done. Averaging...\n" ;
@@ -103,6 +105,22 @@ inline bool perceptron::equal ( std::vector < int > const & gold, std::vector < 
         }
     }
     return true ;
+}
+
+void perceptron::test_dev_set ( set::set const & ds, size_t const & q ) {
+    auto waverage = cpy_average ( q ) ;
+    parsers::set_parser grapph_parser { ds } ;
+    int * averageptr = waverage.get ( ) ;
+    std::swap ( averageptr , w_.f_ ) ;
+    scryer sc { *this } ;
+    auto gparsed = grapph_parser.parse (
+            [ &sc ] ( units::sentence const & s , parsers::chu_liu_edmonds::stc_parser & e ) {
+                return e.parse ( sc );
+            } );
+    assessment::assess_t as =  assessment::uas ( ds , gparsed );
+    std::cout << "UAS (dev_set):   " << std::fixed << std::setw (5) << as.precision <<
+    " Correct: " << as.correctly_predicted << " Out of: " << as.total << '\n' ;
+    std::swap ( averageptr , w_.f_ ) ;
 }
 
 
@@ -136,17 +154,17 @@ void perceptron::enlarge ( w & target ) {
 
 void perceptron::eval ( units::sentence const & stc , parsers::chu_liu_edmonds::matrix < int > & m ) {
     int * pm = m.ptr ( );
+#pragma omp parallel for default (shared)
     for ( int j = 0 ; j < m.rows () ; ++j ) {
         /* TODO: optimize: create and delete too many times. */
         features::feat f ;
+
         t_.extract_features < std::string > ( stc, -1 , j , parsers::chu_liu_edmonds::features::dir_right , j + 1 ,  f,
-                &features::tmpl::add_feature ) ;
-        enlarge ( w_ ) ;
-        enlarge ( u_ ) ;
+                                              &features::tmpl::get_feature ) ;
 
         pm[ j*m.cols ( ) ] = dot_product ( f ) ;
     }
-
+#pragma omp parallel for default (shared)
     for ( int i = 0 ; i < m.rows ( ) ; ++i ) {
         for ( int j = 1 ; j < m.cols ( ) ; ++j ) {
             if ( i + 1 == j ) {
@@ -155,12 +173,9 @@ void perceptron::eval ( units::sentence const & stc , parsers::chu_liu_edmonds::
                 auto & upd = pm[ i*m.cols ( ) + j ] ;
 
                 features::feat f ;
-                t_.extract_features < std::string >  ( stc , j - 1, i ,
-                        ( j > i + 1  ) ? parsers::chu_liu_edmonds::features::dir_left : parsers::chu_liu_edmonds::features::dir_right ,
-                        std::abs (i+1-j),  f , &features::tmpl::add_feature ) ;
-                enlarge ( w_ ) ;
-                enlarge ( u_ ) ;
-
+                    t_.extract_features < std::string >  ( stc , j - 1, i ,
+                                                           ( j > i + 1  ) ? parsers::chu_liu_edmonds::features::dir_left : parsers::chu_liu_edmonds::features::dir_right ,
+                                                           std::abs (i+1-j),  f , &features::tmpl::get_feature ) ;
                 upd = dot_product ( f ) ;
             }
         }
@@ -195,6 +210,9 @@ void perceptron::update ( std::vector < int > const & heads, units::sentence con
         t_.extract_features < std::string > ( stc , hindex - 1 , i ,
                 ( h.id_ > d.id_ ) ? parsers::chu_liu_edmonds::features::dir_left : parsers::chu_liu_edmonds::features::dir_right ,
                 std::abs (h.id_-d.id_), f, &features::tmpl::add_feature ) ;
+
+        enlarge ( w_ ) ;
+        enlarge ( u_ ) ;
 
         for ( auto const & p : f.p_.pos_ ) {
             bopw( w_.f_ [ p ] ) ;
@@ -235,6 +253,15 @@ void perceptron::average ( size_t const & q ) {
     for ( size_t i = 0 ; i < w_.size_ ; ++i ) {
         w_.f_[ i ] -= static_cast< int > ( static_cast<float> (u_.f_[ i ]) /static_cast<float>(q) ) ;
     }
+}
+
+std::unique_ptr < int [] > perceptron::cpy_average ( size_t const & q ) {
+    std::unique_ptr < int[] > p = std::make_unique < int[] > ( w_.size_ ) ;
+    #pragma omp parallel for default ( shared )
+    for ( size_t i = 0 ; i < w_.size_ ; ++i ) {
+        p[ i ] = w_.f_[ i ] - static_cast< int > ( static_cast<float> (u_.f_[ i ])/static_cast<float>(q) ) ;
+    }
+    return p ;
 }
 
 
