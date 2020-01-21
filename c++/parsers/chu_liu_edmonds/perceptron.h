@@ -57,7 +57,6 @@ namespace parsers::chu_liu_edmonds::model {
         void dump ( std::string const & filename ) ;
 
 
-        size_t                                      q_              ;
         w                                           u_              ;
         size_t                                      chunk_          ;
         w                                           w_              ;
@@ -70,15 +69,14 @@ namespace parsers::chu_liu_edmonds::model {
 
         bool equal ( const std::vector < int > & gold , const std::vector < int > & heads ) const;
 
-        template < typename BOP >
-        void update ( const std::vector < int > & heads , const units::sentence & stc , BOP && bop );
+        template < typename BOPW, typename BOPU >
+        void update ( const std::vector < int > & heads , const units::sentence & stc , BOPW && bopw, BOPU && bopu );
 
         int count_correct ( const std::vector < int > & gold , const std::vector < int > & heads ) const;
 
         void enlarge ( w & target );
 
-        template < typename FEATOP >
-        void impl_eval ( const units::sentence & stc , matrix < int > & m , FEATOP && featop );
+        void average ( const size_t & q );
     } ;
 
 

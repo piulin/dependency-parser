@@ -69,7 +69,7 @@ namespace engine {
             st.stop ( ) ;
             scry ( sc ) ;
         }
-
+        st.time_table_.to_csv ( "execution_times.csv" ) ;
     }
 }
 

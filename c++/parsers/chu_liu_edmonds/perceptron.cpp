@@ -8,7 +8,7 @@ using namespace parsers::chu_liu_edmonds::model ;
 
 
 perceptron::perceptron ( size_t const & chunk ) : t_ {} ,
-     chunk_ { chunk }, q_ { 0 }  {
+     chunk_ { chunk } {
     /* legacy code because of realloc*/
     w_.size_= chunk  ;
     w_.f_ = ( int * ) malloc ( chunk_*sizeof ( int ) ) ;
@@ -51,12 +51,14 @@ perceptron::~perceptron ( ) {
 }
 
 void perceptron::train ( set::set const & s, size_t const & ephocs ) {
+    size_t q = 0 ;
     for ( int j = 0 ; j < ephocs ; ++j ) {
         std::cout << "\nEphoc: " << j << '\n' ;
         int total_correct = 0 ;
         int total = 0 ;
-        for ( int i = 0 ; i < s.sentences_.size ( ) ; ++i ) {
 
+        for ( int i = 0 ; i < s.sentences_.size ( ) ; ++i ) {
+            q ++ ;
             if ( (i % 100) == 0 ) {
                 std::cout << " *" << std::flush ;
             }
@@ -69,8 +71,16 @@ void perceptron::train ( set::set const & s, size_t const & ephocs ) {
             int const correct = count_correct ( gold_hds , hds ) ;
             if ( correct != gold_hds.size () ) {
 //                update ( hds , stc , [ &gold_hds ] ( auto & e, auto const & i, auto const & h ) { if ( gold_hds [ i ] != h ) e--; } ) ;
-                update ( hds , stc , [ &gold_hds ] ( auto & e, auto const & i, auto const & h ) { e--; } ) ;
-                update ( gold_hds , stc , [&gold_hds ] ( auto & e, auto const & i, auto const & h) { e++; } ) ;
+                update ( hds , stc , [ ] ( auto & e ) {
+                    e--;
+                    } , [ &q ] ( auto & e ) {
+                    e -= q ;
+                } ) ;
+                update ( gold_hds , stc , [ ] ( auto & e ) {
+                    e++;
+                    }, [ &q ] ( auto & e ) {
+                    e += q ;
+                } ) ;
             }
             total_correct += correct ;
             total += gold_hds.size ( ) ;
@@ -80,6 +90,9 @@ void perceptron::train ( set::set const & s, size_t const & ephocs ) {
 
 
     }
+
+    std::cout << "Training done. Averaging...\n" ;
+    average ( q ) ;
 
 
 }
@@ -129,6 +142,7 @@ void perceptron::eval ( units::sentence const & stc , parsers::chu_liu_edmonds::
         t_.extract_features < std::string > ( stc, -1 , j , parsers::chu_liu_edmonds::features::dir_right , j + 1 ,  f,
                 &features::tmpl::add_feature ) ;
         enlarge ( w_ ) ;
+        enlarge ( u_ ) ;
 
         pm[ j*m.cols ( ) ] = dot_product ( f ) ;
     }
@@ -145,6 +159,7 @@ void perceptron::eval ( units::sentence const & stc , parsers::chu_liu_edmonds::
                         ( j > i + 1  ) ? parsers::chu_liu_edmonds::features::dir_left : parsers::chu_liu_edmonds::features::dir_right ,
                         std::abs (i+1-j),  f , &features::tmpl::add_feature ) ;
                 enlarge ( w_ ) ;
+                enlarge ( u_ ) ;
 
                 upd = dot_product ( f ) ;
             }
@@ -163,8 +178,8 @@ std::vector < int > perceptron::to_heads ( units::sentence const & stc ) {
     return heads ;
 }
 
-template < typename BOP >
-void perceptron::update ( std::vector < int > const & heads, units::sentence const & stc, BOP && bop ) {
+template < typename BOPW, typename BOPU >
+void perceptron::update ( std::vector < int > const & heads, units::sentence const & stc, BOPW && bopw, BOPU && bopu ) {
     for ( int i = 0 ; i < stc.size () ; ++i ) {
         units::token const & d = stc.tokens_[ i ] ;
         int const hindex = heads[ i ] ;
@@ -182,7 +197,8 @@ void perceptron::update ( std::vector < int > const & heads, units::sentence con
                 std::abs (h.id_-d.id_), f, &features::tmpl::add_feature ) ;
 
         for ( auto const & p : f.p_.pos_ ) {
-            bop( w_.f_ [ p ], i, hindex ) ;
+            bopw( w_.f_ [ p ] ) ;
+            bopu( u_.f_ [ p ] ) ;
         }
 
     }
@@ -213,7 +229,13 @@ int perceptron::dot_product ( features::feat const & f ) {
     return product ;
 }
 
+void perceptron::average ( size_t const & q ) {
 
+    #pragma omp parallel for default ( shared )
+    for ( size_t i = 0 ; i < w_.size_ ; ++i ) {
+        w_.f_[ i ] -= static_cast< int > ( static_cast<float> (u_.f_[ i ]) /static_cast<float>(q) ) ;
+    }
+}
 
 
 void scryer::eval ( units::sentence const & stc , parsers::chu_liu_edmonds::matrix < int > & m ) {

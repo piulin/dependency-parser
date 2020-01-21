@@ -182,7 +182,8 @@ namespace parsers::chu_liu_edmonds::features {
 
             using std::string_literals::operator""s;
             size_t const ssize = s.size ( ) ;
-            std::string const dir_dist_string = dir + "$" + std::to_string ( dist ) ;
+            std::string const dir_dist_string = dir + "$"s +  ( ( dist > 3 ) ? "3+"s : std::to_string ( dist ) ) ;
+
 
             units::token const & h = [ & ] ( ) -> units::token const & {
                 if ( hi != -1  ) {
@@ -226,7 +227,6 @@ namespace parsers::chu_liu_edmonds::features {
             } ( ) ;
 
 
-
             #define JOIN "$"
             /* UNIGRAM FEATURES */
             (this->*extraction_function) ( h_[ hform ] , h.form_+dir_dist_string , fh );
@@ -240,7 +240,7 @@ namespace parsers::chu_liu_edmonds::features {
             (this->*extraction_function)  ( h_[ hform_dform ] , h.form_+d.form_+dir_dist_string , fh );
             (this->*extraction_function)  ( h_[ hform_hpos_dpos ] , h.form_+h.pos_+d.pos_+dir_dist_string , fh );
             (this->*extraction_function)  ( h_[ hform_hpos_dform ] , h.form_+h.pos_+d.form_+dir_dist_string , fh );
-            (this->*extraction_function)  ( h_[ hform_dform_dpos ] , h.form_+h.form_+d.pos_+dir_dist_string , fh );
+            (this->*extraction_function)  ( h_[ hform_dform_dpos ] , h.form_+d.form_+d.pos_+dir_dist_string , fh );
             (this->*extraction_function)  ( h_[ hpos_dform_dpos ] , h.pos_+d.form_+d.pos_+dir_dist_string , fh );
             (this->*extraction_function)  ( h_[ hform_hpos_dform_dpos ] , h.form_+h.pos_+d.form_+d.pos_+dir_dist_string , fh );
             /* OTHER FEATURES */
