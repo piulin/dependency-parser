@@ -142,6 +142,9 @@ inline void perceptron::arcs ( units::sentence const & stc, std::vector < int > 
                 std::abs (head + 1 - i ) ,  fs [ i ],
                 &features::tmpl::add_feature ) ;
 
+        enlarge ( w_, t_.i_ ) ;
+        enlarge ( u_, t_.i_ ) ;
+
         for ( w & e : wl_ ) {
             enlarge ( e, t_.i_ ) ;
         }
