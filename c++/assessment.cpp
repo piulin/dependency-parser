@@ -7,9 +7,9 @@
 using namespace assessment ;
 
 std::ostream & assessment::operator << ( std::ostream & o , assess_t const & ass ) {
-    o << "precision: " << ass.precision << '\n'
-      << "total: " << ass.total << '\n'
-      << "correctly_predicted: " << ass.correctly_predicted << '\n' ;
+    o << "  precision: " << ass.precision << '\n'
+      << "  total: " << ass.total << '\n'
+      << "  correctly_predicted: " << ass.correctly_predicted << '\n' ;
     return o ;
 }
 

@@ -127,50 +127,6 @@ namespace parsers::chu_liu_edmonds::features {
         tmpl & operator=(const tmpl & other) = delete ;
         tmpl & operator=(tmpl && other) = default ;
 
-        void gold_features ( set::set const & s ) {
-
-//            #pragma omp parallel for default (shared)
-            for ( int i = 0 ; i < s.sentences_.size ( ) ; ++i ) {
-                units::sentence const & stc = s.sentences_ [ i ] ;
-//                auto[feat,i] = gold_features ( stc ) ;
-            }
-        }
-
-//        auto gold_features ( units::sentence const & stc ) {
-//
-//            units::token const & root_head = stc.root ( ) ;
-//            std::vector < gold_feat > fts ;
-//
-//            /* root */
-//            for ( int j = 0 ; j < stc.size ( ) ; ++j ) {
-//                units::token const & dependant = stc.tokens_ [ j ] ;
-//
-//                gold_feat & f1 = fts.emplace_back ( feat::direction::right, j, dependant.head_ == 0 ) ;
-//                gold_feat & f2 = fts.emplace_back ( feat::direction::left, j, false ) ;
-//
-//                extract_features ( root_head, dependant , f1 ) ;
-//                extract_features ( dependant, root_head , f2 ) ;
-//
-//            }
-//
-//            for ( int j = 0 ; j < stc.size ( ) ; ++j ) {
-//                units::token const & h = stc.tokens_ [ j ] ;
-//                for ( int k = j + 1 ; k < stc.size ( ) ; ++k ) {
-//                    units::token const & d = stc.tokens_[ k ] ;
-//
-//                    gold_feat & f1 = fts.emplace_back ( feat::direction::right , k , d.head_ == h.id_ ) ;
-//                    gold_feat & f2 = fts.emplace_back ( feat::direction::left , k , h.head_ == d.id_ ) ;
-//
-//                    extract_features ( h , d , f1 );
-//                    extract_features ( d , h , f2 );
-//
-//                }
-//            }
-//
-//            return std::make_tuple ( std::move( fts ) , i_ ) ;
-//
-//        }
-
         template < typename T >
         inline void extract_features (  units::sentence const & s,
                                         int const & hi,
@@ -182,7 +138,7 @@ namespace parsers::chu_liu_edmonds::features {
 
             using std::string_literals::operator""s;
             size_t const ssize = s.size ( ) ;
-            std::string const dir_dist_string = dir + "$"s +  ( ( dist > 3 ) ? "3+"s : std::to_string ( dist ) ) ;
+            std::string const dir_dist_string = "$"s + dir +  ( ( dist > 3 ) ? "3+"s : std::to_string ( dist ) ) ;
 
 
             units::token const & h = [ & ] ( ) -> units::token const & {

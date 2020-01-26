@@ -33,16 +33,16 @@ namespace parsers::chu_liu_edmonds {
 
     private:
         /**
-         * Calculates the nodes that form a loop given some candidates.
+         * Finds out the node indexes forming a loop given some candidates.
          * @param candidates    List of nodes that the loop can consist of.
          * @param loop_size     Size of the desired loop.
          * @return  List of nodes that form a loop of the desired size
          */
         [[nodiscard]] std::vector < int > loop_list ( std::vector < int > const & candidates ,
                                                       int const & loop_size ) const {
-            /* List of nodes that is iteratively updated to find the nodes of a loop. This list is ordered. */
+            /* List of nodes iteratively updated to find the nodes inside a loop. This list is ordered. */
             std::vector < int > edge_list ( loop_size + 1 , -1 );
-            /* Stores the indexes of the candidates being used during the iterative part of the algorithm. */
+            /* Stores the indexes of the candidates used during the iterative part of the algorithm. */
             std::vector < short > loop_ixs ( loop_size , 0 );
 
             int const node = candidates[ 0 ];
@@ -53,7 +53,7 @@ namespace parsers::chu_liu_edmonds {
             /* Iterate until we have a valid loop (conditions down) */
             for ( int i = 0 ; i <= loop_size ; ++i ) {
                 bool dead_end = true;
-                /* iterate the columns of the candidates, and check if a path through them is possible */
+                /* iterate through columns of the candidates, and check if a path through them is possible */
                 for ( short & node_index = loop_ixs[ i ] ; node_index < candidates.size ( ) ; node_index++ ) {
                     int col = candidates[ node_index ];
                     if ( p[ curr_node*cols_ + col ] ) {
@@ -78,7 +78,7 @@ namespace parsers::chu_liu_edmonds {
                     i--;
                 }
             }
-            edge_list.pop_back ( ); /* one is repeated */
+            edge_list.pop_back ( ); /* last one is the same as the first one */
             return edge_list;
         }
 
@@ -105,7 +105,7 @@ namespace parsers::chu_liu_edmonds {
         }
 
         /**
-         * Find the first shortest loop in the adjacency matrix and return the its nodes. The nodes are given in circular
+         * Find the first shortest loop in the adjacency matrix and return its nodes. The nodes are given in circular
          * order.
          *
          * To find suitable loops, m^[i] for all i from 1 to [columns] is performed, then check if the diagonal contains
@@ -161,7 +161,7 @@ namespace parsers::chu_liu_edmonds {
         }
 
         /**
-         * Parse a sentence given a adjacency matrix. This matris MUST NOT CONTAIN LOOPS. This condition is NOT checked.
+         * Parse a sentence given a adjacency matrix. This matrix MUST NOT CONTAIN LOOPS. This condition is NOT checked.
          * @param s Sentence to be parsed.
          * @return new parsed sentence
          */
@@ -450,7 +450,7 @@ namespace parsers::chu_liu_edmonds {
     };
 
     /**
-     * The Chu, Liu, Edmonds parser.
+     * The Chu, Liu, Edmonds MSP algorithm.
      */
     class stc_parser {
     public:
@@ -547,7 +547,7 @@ namespace parsers::chu_liu_edmonds {
         }
 
         /**
-         * Iteratively find the maximum spanning tree by assigning best scores and removing cycles.
+         * Recursively find the maximum spanning tree that maximizes the costs of arcs.
          * @param cm initial cost matrix
          * @return adjacency matrix -> MST
          */

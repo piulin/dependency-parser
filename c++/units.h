@@ -22,6 +22,7 @@ namespace units {
         std::string morph_;
         int         head_;
         std::string rel_;
+        int         irel_ ;
 
     };
 

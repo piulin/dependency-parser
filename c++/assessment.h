@@ -17,10 +17,6 @@ namespace assessment {
 
     std::ostream & operator << ( std::ostream & o , assess_t const & ass ) ;
 
-
-//    template < typename C >
-//    assess_t assess ( set::set const & gold, set::set const & pred, C && condition ) ;
-
     assess_t uas ( set::set const & gold, set::set const & pred ) ;
     assess_t las ( set::set const & gold, set::set const & pred ) ;
 
