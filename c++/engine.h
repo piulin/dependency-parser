@@ -54,9 +54,9 @@ namespace engine {
 
             st.start ( "Training perceptron" );
             if ( !options::dev_set.empty ( ) ) {
-                prcp.train ( s , options::ephocs , set::set { options::dev_set } );
+                prcp.train ( s , options::epochs , set::set { options::dev_set } );
             } else {
-                prcp.train ( s , options::ephocs );
+                prcp.train ( s , options::epochs );
             }
             st.stop ( );
 

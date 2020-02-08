@@ -6,6 +6,7 @@
 #include "chu_liu_edmonds.h"
 #include "../../assessment.h"
 #include "../set_parser.h"
+#include <random>
 
 using namespace parsers::chu_liu_edmonds::model ;
 
@@ -92,7 +93,17 @@ perceptron::~perceptron ( ) {
 
 void perceptron::train ( set::set const & s, size_t const & epochs, std::optional < set::set > dev_set ) {
     size_t q = 0 ;
+    std::vector < int > stc_indexes ( s.sentences_.size ( ) ) ;
+
+    std::random_device rd ;
+    std::mt19937 g ( rd ( ) ) ;
+
+    #pragma omp parallel for default ( shared )
+    for ( int k = 0 ; k < stc_indexes.size ( ) ; ++k ) {
+        stc_indexes[ k ] = k ;
+    }
     for ( int j = 0 ; j < epochs ; ++j ) {
+        std::shuffle ( stc_indexes.begin ( ) , stc_indexes.end ( ), g ) ;
         std::cout << "\nEpoch: " << j << '\n' ;
         int total_correct = 0 ;
         int total = 0 ;
@@ -102,7 +113,7 @@ void perceptron::train ( set::set const & s, size_t const & epochs, std::optiona
                 std::cout << " *" << std::flush ;
             }
 
-            units::sentence const & stc = s.sentences_[ i ];
+            units::sentence const & stc = s.sentences_  [  stc_indexes [ i ]  ] ;
             std::vector < int > gold_hds = to_heads ( stc );
             stc_parser prs { stc };
             std::vector < int > hds = prs.heads ( *this );
@@ -181,20 +192,25 @@ void perceptron::predict_labels ( units::sentence & stc ) {
     }
 }
 
-int perceptron::eval_label ( features::feat const & f ) {
-    int maxv = std::numeric_limits<int>::min () ;
-    int maxpc = -1 ;
+struct cmp_t { int val; int index ; } ;
+#pragma omp declare reduction (maximum : struct cmp_t : omp_out = omp_in.val > omp_out.val ? omp_in : omp_out )
 
-//    #pragma omp parallel for reduction (max:maxv)
+int perceptron::eval_label ( features::feat const & f ) const {
+//    int maxpc = -1 ;
+//    int maxv = std::numeric_limits<int>::min () ;
+
+    cmp_t cp { std::numeric_limits<int>::min (), -1 };
+
+//    #pragma omp parallel for reduction (maximum:cp)
     for ( int j = 0 ; j < wl_.size () ; ++j ) {
         w const & cw = wl_[ j ] ;
-        int prod = dot_product ( f , cw ) ;
-        if ( prod > maxv ) {
-            maxv = prod ;
-            maxpc = j ;
+        int const prod = dot_product ( f , cw ) ;
+        if ( prod > cp.val ) {
+            cp.val = prod ;
+            cp.index = j ;
         }
     }
-    return maxpc ;
+    return cp.index ;
 }
 
 
@@ -254,7 +270,6 @@ void perceptron::eval ( units::sentence const & stc , parsers::chu_liu_edmonds::
     int * pm = m.ptr ( );
 #pragma omp parallel for default (shared)
     for ( int j = 0 ; j < m.rows () ; ++j ) {
-        /* TODO: optimize: create and delete too many times. */
         features::feat f ;
         t_.extract_features < std::string > ( stc, -1 , j , parsers::chu_liu_edmonds::features::dir_right , j + 1 ,  f,
                                               &features::tmpl::get_feature ) ;
@@ -281,7 +296,7 @@ void perceptron::eval ( units::sentence const & stc , parsers::chu_liu_edmonds::
 }
 
 
-std::vector < int > perceptron::to_heads ( units::sentence const & stc ) {
+std::vector < int > perceptron::to_heads ( units::sentence const & stc ) const {
     std::vector < int > heads ( stc.size ( ) ) ;
     for ( int i = 0 ; i < stc.size ( ) ; ++i ) {
         int const & h = stc.tokens_ [ i ].head_ ;
@@ -319,7 +334,7 @@ void perceptron::update ( std::vector < int > const & heads, units::sentence con
     }
 }
 
-void perceptron::dump ( std::string const & filename ) {
+void perceptron::dump ( std::string const & filename ) const {
 
     std::ofstream f ( filename , std::ofstream::binary );
     f << std::to_string ( w_.size_ ) << '\n';
@@ -344,7 +359,7 @@ void perceptron::dump ( std::string const & filename ) {
 }
 
 
-int perceptron::dot_product ( features::feat const & f, w const & fvec ) {
+int perceptron::dot_product ( features::feat const & f, w const & fvec ) const {
     int product = 0 ;
     for ( auto const & e : f.p_.pos_ ) {
         product += fvec.f_ [ e ] ;
@@ -360,7 +375,7 @@ void perceptron::average ( size_t const & q ) {
     }
 }
 
-std::unique_ptr < int [] > perceptron::cpy_average ( size_t const & q ) {
+std::unique_ptr < int [] > perceptron::cpy_average ( size_t const & q ) const {
     std::unique_ptr < int[] > p = std::make_unique < int[] > ( w_.size_ ) ;
     #pragma omp parallel for default ( shared )
     for ( size_t i = 0 ; i < w_.size_ ; ++i ) {

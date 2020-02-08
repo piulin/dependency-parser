@@ -18,7 +18,7 @@ namespace parsers::chu_liu_edmonds::features {
 
     static std::string const dir_right = "r" ;
     static std::string const dir_left = "l" ;
-    int const template_size = 18 ;
+    int const template_size = 23 ;
 
 
     /* optimizations for the near future:
@@ -27,8 +27,6 @@ namespace parsers::chu_liu_edmonds::features {
      * so to get a value std::binary_search can be used.
      * Also could be intersting to use std::sort.
      */
-
-
     template < typename I >
     class bool_sparse {
     public:
@@ -102,19 +100,34 @@ namespace parsers::chu_liu_edmonds::features {
             dpos,
             dform_dpos,
 
-            hpos_dpos,
-            hform_dform,
+            hpos_dpos, //
+            hform_dform, //
             hform_hpos_dpos,
-            hform_hpos_dform,
-            hform_dform_dpos,
-            hpos_dform_dpos,
-            hform_hpos_dform_dpos,
+            hform_hpos_dform, //
+            hform_dform_dpos, //
+            hpos_dform_dpos, //
+            hform_hpos_dform_dpos, //
 
             hpos_bpos_dpos,
             hpos_dpos_hposp1_dposm1,
             hpos_dpos_hposm1_dposm1,
             hpos_dpos_hposp1_dposp1,
             hpos_dpos_hposm1_dposp1,
+
+            hform_dform_hpos,
+
+            hpos_hposp1_dpos,
+            hpos_dposm1_dpos,
+            hpos_dpos_dposp1,
+
+            hposm1_hposp1_dposm1_dpos,
+
+
+
+            hpos_dpos_hposp2_dposm2,
+            hpos_dpos_hposm2_dposm2,
+            hpos_dpos_hposp2_dposp2,
+            hpos_dpos_hposm2_dposp2,
         } ;
 
     public:
@@ -150,7 +163,7 @@ namespace parsers::chu_liu_edmonds::features {
             } ( ) ;
             units::token const & d = s.tokens_ [ di ] ;
 
-            std::string const & dposm1 = [& ] ( ) {
+            std::string const & dposm1 = [ & ] ( ) {
                 if ( di > 0 ) {
                     return s.tokens_ [ di - 1 ].pos_ ;
                 } else {
@@ -183,22 +196,58 @@ namespace parsers::chu_liu_edmonds::features {
             } ( ) ;
 
 
+//            std::string const & dposm2 = [& ] ( ) {
+//                if ( di > 1 ) {
+//                    return s.tokens_ [ di - 2 ].pos_ ;
+//                } else {
+//                    return "NULL"s ;
+//                }
+//            } ( ) ;
+//
+//            std::string const & dposp2 = [& ] ( ) {
+//                if ( di + 2 < ssize ) {
+//                    return s.tokens_ [ di + 2 ].pos_ ;
+//                } else {
+//                    return "NULL"s ;
+//                }
+//            } ( ) ;
+//
+//            std::string const & hposp2 = [& ] ( ) {
+//                if ( hi + 2 < ssize && hi != -1 ) {
+//                    return s.tokens_ [ hi + 2 ].pos_ ;
+//                } else {
+//                    return "NULL"s ;
+//                }
+//            } ( ) ;
+//
+//            std::string const & hposm2 = [& ] ( ) {
+//                if ( hi > 1 ) {
+//                    return s.tokens_ [ hi - 2 ].pos_ ;
+//                } else {
+//                    return "NULL"s ;
+//                }
+//            } ( ) ;
+
+
             #define JOIN "$"
             /* UNIGRAM FEATURES */
-            (this->*extraction_function) ( h_[ hform ] , h.form_+dir_dist_string , fh );
+            (this->*extraction_function) ( h_[ hform ] , h.special_+dir_dist_string , fh );
             (this->*extraction_function)  ( h_[ hpos ] , h.pos_+dir_dist_string , fh );
-            (this->*extraction_function)  ( h_[ hform_hpos ] , h.form_+h.pos_+dir_dist_string  , fh );
-            (this->*extraction_function)  ( h_[ dform ] , d.form_+dir_dist_string , fh );
+            (this->*extraction_function)  ( h_[ hform_hpos ] , h.special_+h.pos_+dir_dist_string  , fh );
+            (this->*extraction_function)  ( h_[ dform ] , d.special_+dir_dist_string , fh );
             (this->*extraction_function)  ( h_[ dpos ] , d.pos_+dir_dist_string , fh );
-            (this->*extraction_function)  ( h_[ dform_dpos ] ,  d.form_+d.pos_+dir_dist_string  , fh );
+            (this->*extraction_function)  ( h_[ dform_dpos ] ,  d.special_+d.pos_+dir_dist_string  , fh );
             /* BIGRAM FEATURES */
             (this->*extraction_function)  ( h_[ hpos_dpos ] , h.pos_+d.pos_+dir_dist_string , fh );
-            (this->*extraction_function)  ( h_[ hform_dform ] , h.form_+d.form_+dir_dist_string , fh );
-            (this->*extraction_function)  ( h_[ hform_hpos_dpos ] , h.form_+h.pos_+d.pos_+dir_dist_string , fh );
-            (this->*extraction_function)  ( h_[ hform_hpos_dform ] , h.form_+h.pos_+d.form_+dir_dist_string , fh );
-            (this->*extraction_function)  ( h_[ hform_dform_dpos ] , h.form_+d.form_+d.pos_+dir_dist_string , fh );
-            (this->*extraction_function)  ( h_[ hpos_dform_dpos ] , h.pos_+d.form_+d.pos_+dir_dist_string , fh );
-            (this->*extraction_function)  ( h_[ hform_hpos_dform_dpos ] , h.form_+h.pos_+d.form_+d.pos_+dir_dist_string , fh );
+            (this->*extraction_function)  ( h_[ hform_dform ] , h.special_+d.special_+dir_dist_string , fh );
+            (this->*extraction_function)  ( h_[ hform_hpos_dpos ] , h.special_+h.pos_+d.pos_+dir_dist_string , fh );
+            (this->*extraction_function)  ( h_[ hform_hpos_dform ] , h.special_+h.pos_+d.special_+dir_dist_string , fh );
+            (this->*extraction_function)  ( h_[ hform_dform_dpos ] , h.special_+d.special_+d.pos_+dir_dist_string , fh );
+            (this->*extraction_function)  ( h_[ hpos_dform_dpos ] , h.pos_+d.special_+d.pos_+dir_dist_string , fh );
+            (this->*extraction_function)  ( h_[ hform_hpos_dform_dpos ] , h.special_+h.pos_+d.lemma_+d.pos_+dir_dist_string , fh );
+
+
+//            (this->*extraction_function)  ( h_[ hform_dform_hpos ] , h.special_+d.special_+h.pos_+dir_dist_string , fh );
             /* OTHER FEATURES */
 //            add_feature ( h_[ hpos_bpos_dpos ] , h.pos_+bpos+d.pos_ , fh );
             (this->*extraction_function)  ( h_[ hpos_dpos_hposp1_dposm1 ] , h.pos_+d.pos_+hposp1+dposm1+dir_dist_string , fh );
@@ -206,13 +255,30 @@ namespace parsers::chu_liu_edmonds::features {
             (this->*extraction_function)  ( h_[ hpos_dpos_hposp1_dposp1 ] , h.pos_+d.pos_+hposp1+dposp1+dir_dist_string , fh );
             (this->*extraction_function)  ( h_[ hpos_dpos_hposm1_dposp1 ] , h.pos_+d.pos_+hposm1+dposp1+dir_dist_string  , fh );
 
+            (this->*extraction_function)  ( h_[ hpos_hposp1_dpos ] , h.pos_+hposp1+d.pos_+dir_dist_string  , fh );
+            (this->*extraction_function)  ( h_[ hpos_dposm1_dpos ] , h.pos_+dposm1+d.pos_+dir_dist_string  , fh );
+            (this->*extraction_function)  ( h_[ hpos_dpos_dposp1 ] , h.pos_+d.pos_+dposp1+dir_dist_string  , fh );
+
+
+            (this->*extraction_function)  ( h_[ hposm1_hposp1_dposm1_dpos ] , hposm1+hposp1+dposm1+d.pos_+dir_dist_string  , fh );
+
+//            (this->*extraction_function)  ( h_[ hpos_dpos_hposp2_dposm2 ] , h.pos_+d.pos_+hposp2+dposm2+dir_dist_string , fh );
+//            (this->*extraction_function)  ( h_[ hpos_dpos_hposm2_dposm2 ] , h.pos_+d.pos_+hposm2+dposm2+dir_dist_string , fh );
+//            (this->*extraction_function)  ( h_[ hpos_dpos_hposp2_dposp2 ] , h.pos_+d.pos_+hposp2+dposp2+dir_dist_string , fh );
+//            (this->*extraction_function)  ( h_[ hpos_dpos_hposm2_dposp2 ] , h.pos_+d.pos_+hposm2+dposp2+dir_dist_string  , fh );
+
             if ( std::abs ( hi - di ) == 1 ) {
                 (this->*extraction_function)  ( h_[ hpos_bpos_dpos ] , h.pos_+"NULL"+d.pos_ , fh );
             } else {
                 auto [ min, max ] = std::minmax ( hi , di ) ;
                 for ( int i = min + 1 ; i < max ; ++i ) {
                     /* TODO: Check if tokens can be repeated */
-                    (this->*extraction_function)  ( h_[ hpos_bpos_dpos ] , h.pos_+s.tokens_ [ i ].pos_ +d.pos_+dir_dist_string , fh );
+//                    std::string innerpos = ( i < 4 )? std::to_string ( i )  : std::string( "$4+" ) ;
+//                    (this->*extraction_function)  ( h_[ hpos_bpos_dpos ] , h.pos_+innerpos
+//                    +d.pos_+dir_dist_string , fh );
+
+                    (this->*extraction_function)  ( h_[ hpos_bpos_dpos ] , h.pos_+s.tokens_ [ i ].pos_
+                    +d.pos_+dir_dist_string , fh );
                 }
             }
 

@@ -14,15 +14,17 @@ namespace units {
 
     struct token {
 
-        int         id_ ;
-        std::string form_;
-        std::string lemma_;
-        std::string pos_;
-        std::string xpos_;
-        std::string morph_;
-        int         head_;
-        std::string rel_;
-        int         irel_ ;
+        int         id_     ;
+        std::string form_   ;
+        std::string lemma_  ;
+        std::string pos_    ;
+        std::string xpos_   ;
+        std::string morph_  ;
+        int         head_   ;
+        std::string rel_    ;
+        /* non t defined in the conll format */
+        int         irel_   ;
+        std::string special_;
 
     };
 

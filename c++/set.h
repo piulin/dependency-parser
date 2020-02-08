@@ -14,6 +14,7 @@
 #include <optional>
 #include <set>
 #include <unordered_map>
+#include <algorithm>
 
 namespace set {
 
@@ -24,15 +25,10 @@ namespace set {
 
 
         explicit set( std::string const & file_path, bool const & get_relations = false ) {
-            FILE * fp = fopen(file_path.c_str(),"r");
-//            std::ifstream coll06 ( file_path ) ;
-//            if ( !coll06.is_open() ) {
-//                throw std::runtime_error ( "[Failure]: file \"" + file_path + "\" not found." );
-//            }
+            FILE * fp = fopen ( file_path.c_str ( ) , "r" ) ;
             if ( fp == nullptr ) {
-                throw std::runtime_error ( "[Failure]: file \"" + file_path + "\" not found." );
+                throw std::runtime_error ( "[Failure]: file \"" + file_path + "\" not found." ) ;
             }
-//            std::set < std::string > rels ;
             std::unordered_map < std::string, int > rels ;
 
             units::sentence stc     ;
@@ -69,6 +65,16 @@ namespace set {
                             tok.irel_ = it->second ;
                         }
                     }
+                    tok.special_ = form ;
+                    std::transform ( tok.special_.begin ( ) , tok.special_.end ( ) , tok.special_.begin ( ) ,
+                                     [ ] ( unsigned char const & c ) { return std::tolower ( c ) ; } ) ;
+
+                    if ( std::find_if ( tok.special_.begin ( ) , tok.special_.end ( ) ,
+                                        [ ] ( unsigned char c ) { return !std::isdigit ( c ) || c != ',' || c != '.'; } ) ==
+                         tok.special_.end ( ) ) {
+                        tok.special_ = "_NUM_" ;
+                    }
+
                     stc.add_token ( std::move ( tok ) ) ;
                 } else if ( stc.size() ) {
                     sentences_.push_back( std::move( stc ) ) ;
@@ -80,41 +86,7 @@ namespace set {
                 sentences_.push_back( std::move ( stc ) ) ;
             }
             free ( line_buf ) ;
-
-//            for ( auto && r : rels ) {
-//                rels_.emplace_back ( std::move ( r ) ) ;
-//            }
-            fclose(fp);
-
-//            while ( fscanf( fp, "%d\t%s\t%s\t%s\t%s\t%s\t%d\t%s\t%s\t%s\n",
-//                    &id, form, lemma, pos, xpos, morph, &head, rel, useless,useless  ) != EOF ) {
-//                std::cout << form << " " << rel << "\n" ;
-//            }
-//            exit(0) ;
-//            for (  std::string line ; getline( coll06, line ) ; ) {
-//                /* then, new sentence */
-//                if ( line != "" ) {
-//
-//                    fscanf( fp, "%d\t%s\t%s\t%s\t%s\t%s\t%d\t%s\n",&id, form, lemma, pos, xpos, morph, &head, rel  );
-////                    tk.id_ = std::atoi ( strtok( line.data() , "\t") ) ;
-////                    tk.form_   = strtok( nullptr, "\t") ;
-////                    tk.lemma_  = strtok( nullptr, "\t") ;
-////                    tk.pos_    = strtok( nullptr, "\t") ;
-////                    tk.xpos_   = strtok( nullptr, "\t") ;
-////                    tk.morph_  = strtok( nullptr, "\t") ;
-////                    tk.head_   = std::atoi ( strtok( nullptr, "\t") ) ; /* or a pointer */
-////                    tk.rel_    = strtok(nullptr, "\t") ;
-//
-//                    stc.add_token(  units::token { id, form, lemma, pos, xpos, morph, head, rel }  ) ;
-//                } else {
-//                    sentences_.push_back( std::move( stc ) ) ;
-//                    stc = units::sentence { } ;
-//                }
-//            }
-//            if ( stc.size() > 0 ) {
-//                sentences_.push_back( std::move ( stc ) ) ;
-//            }
-
+            fclose( fp ) ;
         }
 
         explicit set ( std::vector < units::sentence > & stcs ) :

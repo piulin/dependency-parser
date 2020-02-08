@@ -16,14 +16,13 @@ namespace options {
     std::string dev_set ;
     std::string dump_filename;
     std::string model_filename;
-
     std::string predicted_set;
 
     size_t chunk_size = 10000 ;
-    size_t ephocs = 5 ;
+    size_t epochs = 5 ;
 
 
-    void parse ( int const & argc , char **& argv ) {
+    void parse ( int const & argc , char * * & argv ) {
         using namespace std::string_literals;
         int c;
 
@@ -46,7 +45,7 @@ namespace options {
                     predicted_set = optarg;
                     break;
                 case 'e':
-                    ephocs = atoi( optarg );
+                    epochs = atoi( optarg );
                     break;
                 case 'c':
                     chunk_size = atoi( optarg ) ;

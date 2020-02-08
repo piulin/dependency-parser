@@ -15,10 +15,6 @@ namespace parsers {
     class set_parser {
     public:
         explicit set_parser ( set::set const & s ) ;
-
-//        template < typename M >
-//        set::set parse ( M & m ) ;
-
         set::set parse ( std::function < units::sentence ( units::sentence const & , parsers::chu_liu_edmonds::stc_parser & ) > && parse_fn ) ;
         ~set_parser () = default;
         set_parser (const set_parser & other) = delete;

@@ -23,7 +23,7 @@ assess_t assess ( set::set const & gold, set::set const & pred, C && condition )
 
     if ( gold_stcs.size() != pred_stcs.size() ) {
         throw std::runtime_error ( "Assess failure: gold and pred sets do not "
-                                   "present the same amount of sentences." ) ;
+                                   "have the same amount of sentences." ) ;
     }
     size_t const length = gold_stcs.size() ;
 
